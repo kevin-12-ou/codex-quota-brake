@@ -1,0 +1,43 @@
+name: Bug report
+description: 报告一个问题（刹车没生效 / 杀错了 / 装不上）
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先看两件事：
+        1. `node src\quota_brake.mjs --once --json` 能不能读到额度？
+        2. `.state\brake.log` 最后 20 行有没有 `HARD STOP` 或 `no action: <原因>`？
+
+        **请勿贴凭据、token、完整会话标题或 `~/.codex/auth.json` 内容。**
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      description: Windows 版本 / Node 版本 / Codex 版本
+      placeholder: "Windows 11 23H2 · Node v24.21.0 · Codex 26.1117"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 预期 vs 实际
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: brake.log 相关片段
+      description: 只贴最后 20 行，删除 pid 之外的个人信息
+      render: text
+  - type: dropdown
+    id: mode
+    attributes:
+      label: 当时额度状态
+      options:
+        - 5h 已超阈值
+        - 周额度已超阈值
+        - 都没超（只是想验证）
+        - 不确定
