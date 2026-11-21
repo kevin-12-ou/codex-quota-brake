@@ -42,8 +42,16 @@ Codex 的额度是**账号级**的，5 小时一个窗口、每周一个窗口�
 
 ## 安装
 
+**方式一：直接下 ZIP（不用 git）**
+
+1. 打开 https://github.com/kevin-12-ou/codex-quota-brake
+2. 右上角 `Code` → `Download ZIP`，解压到任意目录
+3. 双击 `install.cmd`（或在 PowerShell 里跑 `.\install.ps1`）
+
+**方式二：git**
+
 ```powershell
-git clone https://github.com/<you>/codex-quota-brake.git
+git clone https://github.com/kevin-12-ou/codex-quota-brake.git
 cd codex-quota-brake
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
