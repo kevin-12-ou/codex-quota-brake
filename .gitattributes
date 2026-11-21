@@ -1,7 +1,10 @@
-# 行尾约定：Windows 上 PowerShell / 批处理必须是 CRLF，否则某些场景下会报奇怪的语法/跳转错误
+# 行尾约定
+# .ps1 仓库里存 LF、检出成 CRLF（PowerShell 两种都吃；关键是 BOM，见下）
+# .cmd 直接按二进制存 CRLF：GitHub 的 "Download ZIP" 不做行尾转换，批处理用 LF 在少数场景会出怪问题
 *.ps1  text eol=crlf
-*.cmd  text eol=crlf
+*.cmd  -text
 *.vbs  text eol=crlf
 *.mjs  text eol=lf
 *.json text eol=lf
 *.md   text eol=lf
+*.ps1  working-tree-encoding=UTF-8
