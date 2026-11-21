@@ -1,0 +1,72 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: smoke (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Syntax check
+        shell: pwsh
+        run: node --check src/quota_brake.mjs
+
+      - name: Decision engine — over threshold, nothing generating
+        shell: pwsh
+        run: |
+          $raw = node src/quota_brake.mjs --once --dry-run --json --fake-percent 95 2>$null
+          $j = $raw | ConvertFrom-Json
+          if ($j.verdict -ne 'PAUSE') { throw "verdict=$($j.verdict)" }
+          if ($j.decision.act -ne $false) { throw "should not act without a running turn" }
+          if ($j.decision.reason -ne 'nothing-generating') { throw "reason=$($j.decision.reason)" }
+          Write-Host "ok: verdict=PAUSE, no action ($($j.decision.reason))"
+
+      - name: Decision engine — weekly window alone triggers
+        shell: pwsh
+        run: |
+          $raw = node src/quota_brake.mjs --once --dry-run --json --fake-percent 10 --fake-weekly 95 --fake-active $PID 2>$null
+          $j = $raw | ConvertFrom-Json
+          if ($j.verdict -ne 'PAUSE') { throw "weekly should trigger, verdict=$($j.verdict)" }
+          if ($j.decision.targets.Count -lt 1) { throw "expected a target pid" }
+          Write-Host "ok: weekly-only triggered, target=$($j.decision.targets -join ',')"
+
+      - name: Safety — refuses to kill anything but codex.exe
+        shell: pwsh
+        run: |
+          $raw = node src/quota_brake.mjs --once --dry-run --json --fake-percent 95 --fake-active $PID 2>$null
+          $j = $raw | ConvertFrom-Json
+          $why = $j.killed[0].why
+          if ($why -notmatch 'refusing to kill') { throw "unexpected kill decision: $why" }
+          Write-Host "ok: $why"
+
+      - name: Decision engine — under threshold stays idle
+        shell: pwsh
+        run: |
+          $raw = node src/quota_brake.mjs --once --dry-run --json --fake-percent 10 --fake-weekly 10 2>$null
+          $j = $raw | ConvertFrom-Json
+          if ($j.verdict -ne 'OK') { throw "verdict=$($j.verdict)" }
+          Write-Host "ok: verdict=OK"
+
+      - name: install.ps1 -DryRun lays down files
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:RUNNER_TEMP 'brake-ci'
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -DryRun -Prefix $prefix 2>&1 | Out-Host
+          foreach ($f in 'quota_brake.mjs', 'notify.ps1', 'config.json', 'launch.vbs') {
+            if (-not (Test-Path (Join-Path $prefix $f))) { throw "missing $f" }
+          }
+          $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+          if (Get-ItemProperty -Path $runKey -Name 'CodexQuotaBrake' -ErrorAction SilentlyContinue) {
+            throw 'DryRun must not register autostart'
+          }
+          Write-Host 'ok: dry-run install produced files and no autostart'
