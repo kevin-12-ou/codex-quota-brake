@@ -1,0 +1,15 @@
+# 运行状态与日志（本地生成，别提交）
+.state/
+*.log
+
+# 安装时生成的配置（仓库里只保留 config.example.json）
+config.json
+
+# 测试用的假回合
+faketurn/
+faketurn-codex.exe
+burn.js
+
+node_modules/
+.DS_Store
+Thumbs.db

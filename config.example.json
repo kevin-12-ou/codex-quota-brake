@@ -1,0 +1,19 @@
+{
+  "_comment": "5 小时 / 周额度任一达到阈值就停掉正在生成的回合。改完保存即生效，不用重启。",
+  "threshold5h": 85,
+  "thresholdWeekly": 92,
+
+  "_brakeEnabled_help": "false = 只读额度、不杀任何进程（临时关掉刹车用这个）",
+  "brakeEnabled": true,
+
+  "_brakeMaxKills_help": "滑动窗口内最多停几次，防止病态循环",
+  "brakeMaxKills": 20,
+  "brakeKillWindowSec": 600,
+  "brakeKillCooldownSec": 30,
+
+  "_pollSeconds_help": "正常轮询间隔（秒）；接近或超过阈值时会自动加速",
+  "pollSeconds": 60,
+
+  "_codexBin_help": "留空 = 自动探测 %LOCALAPPDATA%\\OpenAI\\Codex\\bin\\*\\codex.exe",
+  "codexBin": null
+}
