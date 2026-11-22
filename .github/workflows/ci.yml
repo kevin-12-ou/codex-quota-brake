@@ -57,6 +57,17 @@ jobs:
           if ($j.verdict -ne 'OK') { throw "verdict=$($j.verdict)" }
           Write-Host "ok: verdict=OK"
 
+      - name: Soft warning fires below the threshold
+        shell: pwsh
+        run: |
+          $raw = node src/quota_brake.mjs --once --dry-run --json --fake-percent 82 --fake-weekly 10 2>$null
+          $j = $raw | ConvertFrom-Json
+          if ($j.verdict -ne 'OK') { throw "82% must not trigger the brake, got $($j.verdict)" }
+          $logText = Get-Content 'src/.state/brake.log' -Raw
+          if ($logText -notmatch 'warn: 5h=82%') { throw 'expected a soft warning log line' }
+          Remove-Item 'src/.state' -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host 'ok: soft warning fired at 82% without braking'
+
       - name: install.ps1 -DryRun lays down files
         shell: pwsh
         run: |
