@@ -234,7 +234,8 @@ Start-Process .\faketurn\codex.exe -ArgumentList '"burn.js"','exec' -WindowStyle
 ```
 
 设计取舍、踩过的坑、实测记录都在 **[docs/DESIGN.md](docs/DESIGN.md)**。
-欢迎 PR：尤其是 macOS/Linux 的进程终止与自启实现。
+实现：`src/quota_brake.mjs`（刹车）/ `src/send.mjs`（定时投递）/ `src/fingerprint.mjs`（降智检测）
+/ `src/lib/quota.mjs`（共享的额度读取）。欢迎 PR：尤其是 macOS/Linux 的进程终止与自启实现。
 
 ## English
 
