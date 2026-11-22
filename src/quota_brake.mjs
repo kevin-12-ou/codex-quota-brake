@@ -45,6 +45,7 @@ function parseArgs(argv) {
 const DEFAULTS = {
   threshold5h: 85,
   thresholdWeekly: 92,
+  warnAt: 80,             // 软预警：到这条线先提醒一次，给用户收尾的机会（0 = 关闭）
   pollSeconds: 60,        // 正常节奏
   hotPollSeconds: 10,     // 超阈值 / 距阈值 5 点内
   killCooldownSec: 30,    // 同一 pid 两次 kill 的最小间隔
@@ -66,6 +67,7 @@ const cfg = {
   ...DEFAULTS,
   threshold5h: Number(fileCfg.threshold5h ?? DEFAULTS.threshold5h),
   thresholdWeekly: Number(fileCfg.thresholdWeekly ?? DEFAULTS.thresholdWeekly),
+  warnAt: Number(fileCfg.warnAt ?? DEFAULTS.warnAt),
   killWindowSec: Number(fileCfg.brakeKillWindowSec ?? DEFAULTS.killWindowSec),
   ...(ARGS['threshold-5h'] !== undefined ? { threshold5h: Number(ARGS['threshold-5h']) } : {}),
   ...(ARGS['threshold-weekly'] !== undefined ? { thresholdWeekly: Number(ARGS['threshold-weekly']) } : {}),
@@ -443,6 +445,7 @@ function saveState(s) { try { writeFileSync(STATE_PATH, JSON.stringify(s, null, 
 let _cfgMtime = 0;
 function reloadConfig() {
   try {
+    if (!existsSync(CFG_PATH)) return;   // 没配置文件就用默认值，不用每拍喊一次
     const st = statSync(CFG_PATH);
     if (st.mtimeMs === _cfgMtime) return;
     _cfgMtime = st.mtimeMs;
@@ -453,6 +456,7 @@ function reloadConfig() {
     if (ARGS['max-kills'] === undefined && Number(j.brakeMaxKills) > 0) cfg.maxKills = Number(j.brakeMaxKills);
     if (ARGS['kill-cooldown'] === undefined && Number(j.brakeKillCooldownSec) >= 0) cfg.killCooldownSec = Number(j.brakeKillCooldownSec);
     if (ARGS['kill-window'] === undefined && Number(j.brakeKillWindowSec) >= 60) cfg.killWindowSec = Number(j.brakeKillWindowSec);
+    if (Number.isFinite(Number(j.warnAt)) && Number(j.warnAt) >= 0) cfg.warnAt = Number(j.warnAt);
     if (j.brakeEnabled === false) cfg.enabled = false; else cfg.enabled = true;
     const after = cfg.threshold5h + '/' + cfg.thresholdWeekly + '/k' + cfg.maxKills;
     if (before !== after) log('config reloaded: 5h>=' + cfg.threshold5h + '% weekly>=' + cfg.thresholdWeekly + '% maxKills=' + cfg.maxKills);
@@ -487,6 +491,23 @@ async function tick(state) {
   const windows = q.windows.map((w) => ({ ...w, threshold: thr[w.label] ?? cfg.threshold5h, over: w.usedPercent >= (thr[w.label] ?? cfg.threshold5h) }));
   const over = windows.some((w) => w.over);
   const near = windows.some((w) => !w.over && w.usedPercent >= (w.threshold - 5));
+
+  // 软预警：到 warnAt 先提醒一次（同一窗口周期只提醒一次），让人有机会体面收尾，
+  // 而不是等到阈值被硬停。窗口重置后（resetsAt 变了）会重新提醒。
+  if (cfg.warnAt > 0 && !over) {
+    const warned = state.warnedFor || {};
+    const toWarn = windows.filter((w) => !w.over
+      && w.usedPercent >= Math.min(cfg.warnAt, w.threshold - 1)
+      && warned[w.label] !== w.resetsAt);
+    if (toWarn.length) {
+      for (const w of toWarn) warned[w.label] = w.resetsAt;
+      state.warnedFor = warned;
+      log('warn: ' + toWarn.map((w) => w.label + '=' + w.usedPercent + '% (阈值 ' + w.threshold + '%)').join(', '));
+      notify('Codex 额度预警',
+        toWarn.map((w) => w.label + ' 已用 ' + w.usedPercent + '%（阈值 ' + w.threshold + '%）').join('；')
+        + '。再往上就要被自动停了，建议现在收尾。');
+    }
+  }
 
   let active = [];
   let confirmed = null;

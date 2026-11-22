@@ -3,6 +3,9 @@
   "threshold5h": 85,
   "thresholdWeekly": 92,
 
+  "_warnAt_help": "软预警线（%）：到这条线先弹一次提醒，给收尾的机会；0 = 关闭",
+  "warnAt": 80,
+
   "_brakeEnabled_help": "false = 只读额度、不杀任何进程（临时关掉刹车用这个）",
   "brakeEnabled": true,
 
