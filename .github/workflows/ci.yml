@@ -44,7 +44,8 @@ jobs:
       - name: send.mjs CLI surface
         shell: pwsh
         run: |
-          $h = node src/send.mjs --help 2>&1
+          # 注意：PowerShell 对数组用 -match 返回的是"匹配到的元素"，不是布尔值，所以先 join。
+          $h = (node src/send.mjs --help 2>&1) -join "`n"
           if ($h -notmatch 'when-reset') { throw 'help text missing --when-reset' }
           node src/send.mjs --list --json 2>$null | ConvertFrom-Json | Out-Null
           Write-Host 'ok: send.mjs help/list'
