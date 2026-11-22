@@ -43,11 +43,19 @@ if (-not (Test-Path $auth)) {
   Info "已检测到 Codex 登录凭据：$auth"
 }
 
-# 3) 复制文件
+# 3) 复制文件（三个工具 + 共享库）
 if ($DryRun) { Info "DRY-RUN：目标目录 $Prefix（不写注册表、不启动）" }
 New-Item -ItemType Directory -Force -Path $Prefix | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $Prefix 'lib') | Out-Null
 Copy-Item (Join-Path $repo 'src\quota_brake.mjs') $Prefix -Force
+Copy-Item (Join-Path $repo 'src\send.mjs') $Prefix -Force
+Copy-Item (Join-Path $repo 'src\fingerprint.mjs') $Prefix -Force
 Copy-Item (Join-Path $repo 'src\notify.ps1') $Prefix -Force
+Copy-Item (Join-Path $repo 'src\lib\quota.mjs') (Join-Path $Prefix 'lib') -Force
+$fpCfg = Join-Path $Prefix 'fingerprint.config.json'
+if (-not (Test-Path $fpCfg)) {
+  Copy-Item (Join-Path $repo 'src\fingerprint.config.example.json') $fpCfg
+}
 $cfg = Join-Path $Prefix 'config.json'
 if (-not (Test-Path $cfg)) {
   Copy-Item (Join-Path $repo 'config.example.json') $cfg

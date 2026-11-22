@@ -19,7 +19,31 @@ jobs:
 
       - name: Syntax check
         shell: pwsh
-        run: node --check src/quota_brake.mjs
+        run: |
+          foreach ($f in 'src/quota_brake.mjs', 'src/send.mjs', 'src/fingerprint.mjs', 'src/lib/quota.mjs') {
+            node --check $f
+            if ($LASTEXITCODE -ne 0) { throw "syntax error: $f" }
+          }
+          Write-Host 'ok: syntax (4 files)'
+
+      - name: PowerShell scripts must be UTF-8 with BOM
+        shell: pwsh
+        run: |
+          foreach ($f in Get-ChildItem -Recurse -Filter *.ps1) {
+            $b = [IO.File]::ReadAllBytes($f.FullName)
+            if (-not ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)) {
+              throw "missing UTF-8 BOM (PowerShell 5.1 reads it as ANSI): $($f.Name)"
+            }
+          }
+          Write-Host 'ok: all .ps1 have BOM'
+
+      - name: send.mjs CLI surface
+        shell: pwsh
+        run: |
+          $h = node src/send.mjs --help 2>&1
+          if ($h -notmatch 'when-reset') { throw 'help text missing --when-reset' }
+          node src/send.mjs --list --json 2>$null | ConvertFrom-Json | Out-Null
+          Write-Host 'ok: send.mjs help/list'
 
       - name: Decision engine — over threshold, nothing generating
         shell: pwsh

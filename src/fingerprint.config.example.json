@@ -1,0 +1,19 @@
+{
+  "_comment": "模型指纹 / 降智检测配置。Codex 模式不需要填 relay；用中转站检测时才填 baseurl/apikey。",
+  "count": 3,
+  "rounds": 1,
+  "retries": 2,
+  "codexExpectedModel": "gpt-6.1-sol",
+  "confidenceThreshold": 99,
+  "_relay_help": "只在 --mode relay 时使用；apikey 建议用环境变量传递，不要写进仓库",
+  "relay": {
+    "baseurl": "",
+    "apikey": "",
+    "model": "",
+    "api": "chatcompletion",
+    "image": false,
+    "timeoutSec": 120
+  },
+  "dailyEnabled": false,
+  "dailyTime": "09:00"
+}

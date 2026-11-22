@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.0 — 2026-11-22
+
+三个工具合成一套，安装一次全都有。
+
+- **新增 `send.mjs`**：把消息投给 Codex 会话 —— `--now` / `--in 2h30m` / `--at "…"` /
+  **`--when-reset`**（读额度窗口的重置时间，到点自动发）/ `--list`（列最近会话，不用手抄 UUID）/
+  `--status` / `--cancel`。调度进程 detached，关终端也照发；投递失败会写明原因。
+- **新增 `fingerprint.mjs`**：模型指纹 / 降智检测（可选，需要 `npm i -g lmfpd`）。用本机
+  `codex exec` 作答、`lmfpd` 本地打分，跑完自动归档测试会话，结果追加到 `.state/fp-results.jsonl`。
+  支持 `--mode codex` 与 `--mode relay`（中转站）。
+- **重构**：额度读取抽到 `src/lib/quota.mjs`，刹车与投递共用一份实现。
+- **安装**：`install.ps1` 现在一次装齐三个工具 + 共享库 + 两个示例配置。
+- **CI**：新增 4 个文件的语法检查、`.ps1` 必须带 BOM 的检查、`send.mjs` CLI 冒烟。
+
 ## v0.1.1 — 2026-11-22
 
 - **软预警 `warnAt`（默认 80%）**：到线先弹一次通知，同一窗口周期只提醒一次（按 `resetsAt` 去重），

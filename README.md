@@ -49,7 +49,8 @@ Codex 的额度是**账号级**的（手机、网页、另一台机器共用同�
 
 ## 60 秒上手
 
-**要求**：Windows 10/11 + Node.js ≥ 22.5 + 已登录的 Codex（不需要任何 API key）
+**要求**：Windows 10/11 + Node.js ≥ 22.5 + 已登录的 Codex（不需要任何 API key）。
+"降智检测"额外需要 `npm i -g lmfpd`，其余两个工具零依赖。
 
 ```powershell
 # 1. 下载并解压 ZIP，或：
@@ -98,6 +99,55 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 [2026-11-21T09:12:26Z] HARD STOP pid 41234 (thread 8f3a2c11) -> killed
 [2026-11-21T09:12:26Z] notified: Codex 额度已到阈值，已暂停当前回合
 ```
+
+## 不只是刹车：三件套
+
+<div align="center">
+  <img src="docs/img/suite.png" alt="三个工具" width="100%">
+</div>
+
+安装脚本会把三个工具放到同一个目录（`%LOCALAPPDATA%\CodexQuotaBrake\`），共用一份额度读取库。
+
+### 1. `quota_brake.mjs` —— 到阈值就停
+
+就是上面讲的那个常驻刹车，默认开启（80% 软预警 / 85% 与 92% 硬停）。
+
+### 2. `send.mjs` —— 定时 / 等额度重置后再投递
+
+5 小时撞满之后 Codex 会拒绝新请求，可任务还得接着跑。它用 Codex 原生的
+`codex queue --thread <id> --message <text>` 投递（不需要 GUI、中文原样送达）：
+
+```powershell
+node send.mjs --list                                        # 最近的会话（标题 + UUID，不用手抄）
+node send.mjs --thread <id> --message "继续"                  # 立刻发
+node send.mjs --thread <id> --message "继续" --in 2h30m       # 相对时间
+node send.mjs --thread <id> --message "继续" --at "2026-11-21 09:00:00"
+node send.mjs --thread <id> --message "继续" --when-reset     # 等 5h / 周窗口重置后自动发
+node send.mjs --status        # 看还有多久
+node send.mjs --cancel        # 取消并杀掉调度进程
+```
+
+`--when-reset` 会先读一次额度，挑**最先重置**的那个已超阈值窗口，到点 + 60 秒缓冲再投递
+（`--threshold`、`--buffer` 可调）。调度进程是 detached 的，关掉终端也照样到点发。
+
+> 投递失败不会静默：状态里会写清原因（比如会话已归档、UUID 写错、Codex 未登录）。
+
+### 3. `fingerprint.mjs` —— 降智检测（可选）
+
+用官方检测器（`lmfpd`：题目随机、评分全部在本地完成）给当前模型做指纹比对，回答由你本机的
+`codex exec` 生成，跑完**自动归档**那几个测试会话：
+
+```powershell
+npm i -g lmfpd
+node fingerprint.mjs --run --mode codex --count 3 --json
+node fingerprint.mjs --status            # 最近一次结果
+node fingerprint.mjs --log --days 30     # 历史
+```
+
+结果追加到 `.state/fp-results.jsonl`，可以自己画趋势或日历。`--mode relay` 还能对中转站做同样的检测
+（需要 `baseurl` / `apikey`，建议放环境变量，别写进仓库）。
+
+> 3 个样本才有可用的置信度（约 1~4 分钟，会消耗少量额度）；只跑 1 个样本只会得到"置信度不足"的弱结论。
 
 ## 配置
 

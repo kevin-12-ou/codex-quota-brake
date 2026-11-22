@@ -117,7 +117,9 @@ node quota_brake.mjs --once --dry-run --json --fake-percent 95 --fake-weekly 95 
 
 ## 8. 复杂度预算
 
-- 依赖：**0 个第三方包**（只用 Node 内置 + Windows 自带 `taskkill`/PowerShell）。
+- 依赖：**0 个第三方包**（只用 Node 内置 + Windows 自带 `taskkill`/PowerShell）；
+  只有可选的"降智检测"需要外部的 `lmfpd`（官方检测器，评分在本地完成）。
+- 三个工具共用一个额度读取库：`src/lib/quota.mjs`（app-server 客户端 + 窗口解析）。
 - 配置项：8 个，全部可热改。
-- 维护面：一个 600 行的单文件 + 一个通知脚本 + 两个安装脚本。
-- 刻意没做：跨平台、GUI、自动续跑（这类应该由 Codex 自己的队列/会话能力负责）。
+- 维护面：三个单文件（刹车 / 投递 / 检测）+ 一个共享库 + 一个通知脚本 + 两个安装脚本。
+- 刻意没做：跨平台、GUI、自动续跑（续跑由 `send.mjs` + Codex 自己的队列能力负责）。
